@@ -16,11 +16,11 @@ from .modeling_openai import (OpenAIGPTConfig, OpenAIGPTModel,
 from .modeling_transfo_xl import (TransfoXLConfig, TransfoXLModel, TransfoXLLMHeadModel,
                                   load_tf_weights_in_transfo_xl)
 from .modeling_gpt2 import (GPT2Config, GPT2Model,
-                            GPT2LMHeadModel, GPT2DoubleHeadsModel, GPT2MultipleChoiceHead,
-                            load_tf_weights_in_gpt2)
+                            GPT2LMHeadModel, GPT2DoubleHeadsModel, GPT2MultipleChoiceHead, 
+                            GPT2ClassificationHeadModel, load_tf_weights_in_gpt2)
 from .modeling_xlnet import (XLNetBaseConfig, XLNetConfig, XLNetRunConfig,
                              XLNetPreTrainedModel, XLNetModel, XLNetLMHeadModel,
-                             load_tf_weights_in_xlnet)
+                             XLNetForClassification, load_tf_weights_in_xlnet)
 
 from .optimization import BertAdam
 from .optimization_openai import OpenAIAdam

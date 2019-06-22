@@ -947,3 +947,28 @@ class GPT2DoubleHeadsModel(GPT2PreTrainedModel):
         if self.transformer.output_attentions:
             return all_attentions, lm_logits, mc_logits, presents
         return lm_logits, mc_logits, presents
+
+class GPT2ClassificationHeadModel(GPT2PreTrainedModel):
+
+    def __init__(self, config, clf_dropout=0.4, n_class=8):
+        super(GPT2ClassificationHeadModel, self).__init__(config)
+        self.transformer = GPT2Model(config)
+        self.dropout = nn.Dropout(clf_dropout)
+        self.linear = nn.Linear(config.n_embd * 2, n_class)
+
+        nn.init.normal_(self.linear.weight, std = 0.02)
+        nn.init.normal_(self.linear.bias, 0)
+        
+        self.apply(self.init_weights)
+
+
+    def forward(self, input_ids, position_ids=None, token_type_ids=None, lm_labels=None, past=None):
+        hidden_states, presents = self.transformer(input_ids, position_ids, token_type_ids, past)
+        avg_pool = torch.mean(hidden_states[-1], 1)
+        max_pool, _ = torch.max(hidden_states[-1], 1)
+        h_conc = torch.cat((avg_pool, max_pool), 1)
+        logits = self.linear(self.dropout(h_conc))
+        return logits
+
+    def set_num_special_tokens(self, num_special_tokens, predict_special_tokens=True):
+        pass

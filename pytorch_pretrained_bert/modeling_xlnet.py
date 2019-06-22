@@ -1317,3 +1317,24 @@ class XLNetForSequenceClassification(XLNetPreTrainedModel):
         # if self.output_attentions:
         return logits, new_mems
         #     return all_attentions, encoded_layers, pooled_output
+
+class XLNetForClassification(XLNetPreTrainedModel):
+    def __init__(self, config, clf_dropout=0.4, n_class=8):
+        super(XLNetForClassification, self).__init__(config)
+
+        self.transformer = XLNetModel(config)
+        self.dropout = nn.Dropout(clf_dropout)
+        self.linear = nn.Linear(2 * config.d_model, n_class)
+
+        nn.init.normal_(self.linear.weight, std = 0.02)
+        nn.init.normal_(self.linear.bias, 0)
+
+        self.apply(self.init_xlnet_weights)
+
+    def forward(self, input_ids, position_ids=None, token_type_ids=None, lm_labels=None, past=None):
+        output, hidden_states, new_mems = self.transformer(input_ids, position_ids, token_type_ids, past)
+        avg_pool = torch.mean(output, 1)
+        max_pool, _ = torch.max(output, 1)
+        h_conc = torch.cat((avg_pool, max_pool), 1)
+        logits = self.linear(self.dropout(h_conc))
+        return logits
