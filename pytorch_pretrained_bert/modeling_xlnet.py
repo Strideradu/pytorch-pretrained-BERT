@@ -1318,13 +1318,28 @@ class XLNetForSequenceClassification(XLNetPreTrainedModel):
         return logits, new_mems
         #     return all_attentions, encoded_layers, pooled_output
 
+class XLNetPooler(nn.Module):
+    def __init__(self, config):
+        super(XLNetPooler, self).__init__()
+        self.dense = nn.Linear(config.d_model, config.d_model)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
+
 class XLNetForClassification(XLNetPreTrainedModel):
     def __init__(self, config, clf_dropout=0.4, n_class=8):
         super(XLNetForClassification, self).__init__(config)
 
         self.transformer = XLNetModel(config)
+        self.pooler = XLNetPooler(config)
         self.dropout = nn.Dropout(clf_dropout)
-        self.linear = nn.Linear(2 * config.d_model, n_class)
+        self.linear = nn.Linear(config.d_model, n_class)
 
         nn.init.normal_(self.linear.weight, std = 0.02)
         nn.init.normal_(self.linear.bias, 0)
@@ -1333,8 +1348,6 @@ class XLNetForClassification(XLNetPreTrainedModel):
 
     def forward(self, input_ids, position_ids=None, token_type_ids=None, lm_labels=None, past=None):
         output, hidden_states, new_mems = self.transformer(input_ids, position_ids, token_type_ids, past)
-        avg_pool = torch.mean(output, 1)
-        max_pool, _ = torch.max(output, 1)
-        h_conc = torch.cat((avg_pool, max_pool), 1)
-        logits = self.linear(self.dropout(h_conc))
+        pooled_output = self.pooler(output)
+        logits = self.linear(self.dropout(pooled_output))
         return logits
